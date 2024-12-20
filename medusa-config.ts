@@ -1,16 +1,46 @@
-import { loadEnv, defineConfig } from '@medusajs/framework/utils'
+const dotenv = require('dotenv')
 
-loadEnv(process.env.NODE_ENV || 'development', process.cwd())
+let ENV_FILE_NAME = '.env';
+dotenv.config({ path: process.cwd() + '/' + ENV_FILE_NAME });
 
-module.exports = defineConfig({
+// CORS when consuming Medusa from admin
+const ADMIN_CORS = process.env.ADMIN_CORS || "https://speedtrapracing.com";
+
+// CORS to avoid issues when consuming Medusa from a client
+const STORE_CORS = process.env.STORE_CORS || "https://speedtrapracing.com";
+
+// Database URL (from env)
+const DATABASE_URL = process.env.DATABASE_URL;
+
+module.exports = {
   projectConfig: {
-    databaseUrl: process.env.DATABASE_URL,
-    http: {
-      storeCors: process.env.STORE_CORS!,
-      adminCors: process.env.ADMIN_CORS!,
-      authCors: process.env.AUTH_CORS!,
-      jwtSecret: process.env.JWT_SECRET || "supersecret",
-      cookieSecret: process.env.COOKIE_SECRET || "supersecret",
+    redis_url: null,
+    database_url: DATABASE_URL,
+    database_type: "postgres",
+    database_extra: {
+      ssl: {
+        rejectUnauthorized: false
+      }
+    },
+    store_cors: STORE_CORS,
+    admin_cors: ADMIN_CORS,
+  },
+  plugins: [
+    `medusa-fulfillment-manual`,
+    `medusa-payment-manual`,
+    {
+      resolve: `@medusajs/file-local`,
+      options: {
+        upload_dir: "uploads"
+      }
+    }
+  ],
+  modules: {
+    eventBus: {
+      resolve: "@medusajs/event-bus-local"
+    },
+    cacheService: {
+      resolve: "@medusajs/cache-inmemory"
     }
   }
-})
+}
